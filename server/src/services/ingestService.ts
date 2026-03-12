@@ -1,5 +1,5 @@
 import pool from "../db/db";
-import { fetchYoutubeCampaignData } from "./youtubeService";
+import { fetchYouTubeCampaignData } from "./youtubeService";
 
 type IngestInput = {
   name: string;
@@ -30,7 +30,7 @@ export async function ingestCampaignData({
 
     const campaign = campaignResult.rows[0];
 
-    const videos = await fetchYoutubeCampaignData(query, maxResults);
+    const videos = await fetchYouTubeCampaignData(query, maxResults);
 
     let creatorsInserted = 0;
     let contentInserted = 0;
@@ -71,7 +71,7 @@ export async function ingestCampaignData({
                    INSERT INTO content_items (
                       creator_id,
                       campaign_id,
-                      platform_id,
+                      platform,
                       external_content_id,
                       title,
                       published_at,
@@ -104,7 +104,7 @@ export async function ingestCampaignData({
           video.views,
           video.likes,
           video.comments,
-          videos.engagementRate,
+          video.engagementRate,
         ],
       );
 
