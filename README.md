@@ -10,7 +10,7 @@ The goal is to demonstrate how a brand partnerships or marketing team could quic
 
 ## Dashboard Preview
 
-![Creator Campaign Analytics Dashboard](docs/dashboard.png)
+![Creator Campaign Analytics Dashboard](docs/Dashboard.png)
 
 ## Why I Built It This Way
 
