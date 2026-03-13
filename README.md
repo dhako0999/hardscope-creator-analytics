@@ -10,7 +10,9 @@ The goal is to demonstrate how a brand partnerships or marketing team could quic
 
 ## Dashboard Preview
 
-![Creator Campaign Analytics Dashboard](docs/Dashboard.png)
+The React dashboard allows brand partnerships teams to quickly evaluate creator performance and campaign reach.
+
+![Creator Campaign Analytics Dashboard](docs/dashboard-preview.png)
 
 ## Why I Built It This Way
 
