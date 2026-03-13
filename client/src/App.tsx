@@ -30,6 +30,16 @@ type Creator = {
   avg_engagement_rate: string;
 };
 
+type Alert = {
+  id: number;
+  name: string;
+  subscriber_count: string;
+  total_videos: string;
+  total_views: string;
+  avg_engagement_rate: string;
+  avg_campaign_engagement: string;
+};
+
 type SortKey =
   | "name"
   | "subscriber_count"
@@ -55,6 +65,7 @@ function App() {
 
   const [sortKey, setSortKey] = useState<SortKey>("total_views");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [alerts, setAlerts] = useState<Alert[]>([]);
 
   function handleSort(key: sortKey) {
     if (sortKey === key) {
@@ -82,16 +93,21 @@ function App() {
     if (!campaignId) return;
 
     async function loadAnalytics() {
-      const summaryRes = await axios.get(
-        `http://localhost:4000/api/analytics/summary?campaignId=${campaignId}`,
-      );
-
-      const creatorsRes = await axios.get(
-        `http://localhost:4000/api/analytics/top-creators?campaignId=${campaignId}`,
-      );
+      const [summaryRes, creatorsRes, alertsRes] = await Promise.all([
+        axios.get(
+          `http://localhost:4000/api/analytics/summary?campaignId=${campaignId}`,
+        ),
+        axios.get(
+          `http://localhost:4000/api/analytics/top-creators?campaignId=${campaignId}`,
+        ),
+        axios.get(
+          `http://localhost:4000/api/analytics/alerts?campaignId=${campaignId}`,
+        ),
+      ]);
 
       setSummary(summaryRes.data.summary);
       setCreators(creatorsRes.data.creators);
+      setAlerts(alertsRes.data.alerts);
     }
 
     loadAnalytics().catch(console.error);
@@ -235,6 +251,50 @@ function App() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {alerts.length > 0 && (
+        <div
+          style={{
+            marginBottom: 32,
+            background: "#fff7ed",
+            border: "1px solid #fdba74",
+            borderLeft: "6px solid #EA580C",
+            borderRadius: 12,
+            padding: 20,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h2 style={{ marginTop: 0 }}> ⚠️ Alerts</h2>
+          <p style={{ color: "#D0342C", marginBottom: 16 }}>
+            These creators are performing below the campaign’s average
+            engagement rate (
+            <strong>
+              {Number(alerts[0]?.avg_campaign_engagement).toFixed(2)}%
+            </strong>
+            ) and may require additional review before partnership
+            prioritization.
+          </p>
+
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 20,
+              textAlign: "left",
+              listStylePosition: "inside",
+            }}
+          >
+            {alerts.map((alert) => (
+              <li
+                key={alert.id}
+                style={{ marginBottom: 10, lineHeight: "1.6" }}
+              >
+                <strong>{alert.name}</strong> — Avg Engagement:{" "}
+                <strong>{Number(alert.avg_engagement_rate).toFixed(2)}%</strong>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

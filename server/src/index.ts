@@ -183,6 +183,60 @@ app.get("/api/analytics/top-creators", async (req, res) => {
   }
 });
 
+app.get("/api/analytics/alerts", async (req, res) => {
+  try {
+    const campaignId = req.query.campaignId;
+
+    if (!campaignId) {
+      return res.status(400).json({
+        status: "error",
+        message: "campaignId is required",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      WITH campaign_average AS (
+        SELECT AVG(engagement_rate) AS avg_campaign_engagement
+        FROM content_items
+        WHERE campaign_id = $1
+      )
+      SELECT
+        c.id,
+        c.name,
+        c.subscriber_count,
+        COUNT(ci.id) AS total_videos,
+        COALESCE(SUM(ci.views), 0) AS total_views,
+        COALESCE(AVG(ci.engagement_rate), 0) AS avg_engagement_rate,
+        campaign_average.avg_campaign_engagement
+      FROM creators c
+      JOIN content_items ci ON ci.creator_id = c.id
+      CROSS JOIN campaign_average
+      WHERE ci.campaign_id = $1
+      GROUP BY
+        c.id,
+        c.name,
+        c.subscriber_count,
+        campaign_average.avg_campaign_engagement
+      HAVING AVG(ci.engagement_rate) < campaign_average.avg_campaign_engagement
+      ORDER BY total_views DESC
+      `,
+      [campaignId],
+    );
+
+    res.json({
+      status: "ok",
+      alerts: result.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch campaign alerts",
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

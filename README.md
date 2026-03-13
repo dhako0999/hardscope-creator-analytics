@@ -61,6 +61,7 @@ The architecture separates ingestion, storage, and visualization so the system c
   - creator performance chart
   - sortable top creators table
 - Supports basic analytics workflows for evaluating creator reach and engagement
+- Includes an alert feature that flags creators performing below the campaign average engagement rate
 
 ## Data Source
 
@@ -149,3 +150,4 @@ http://localhost:4000
 - Implement background ingestion jobs
 - Add campaign comparison analytics
 - Improve engagement scoring models
+- Extend alerting to detect engagement drops over time using historical metric snapshots
