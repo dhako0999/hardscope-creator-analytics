@@ -103,6 +103,14 @@ This schema keeps campaign, creator, and content data separate so that analytics
 - `GET /api/analytics/summary?campaignId=1`
 - `GET /api/analytics/top-creators?campaignId=1`
 
+## Scheduled Data Refresh (Concept)
+
+In production, creator campaign analytics platforms periodically refresh campaign metrics to keep engagement and reach data up to date.
+
+This project includes a scheduled refresh concept using `node-cron`. The scheduler is disabled by default to avoid creating duplicate campaign records during development. In a production version, the scheduler would refresh metrics for existing campaigns rather than insert new campaign rows.
+
+This approach demonstrates how the system could support recurring data ingestion without manual triggers.
+
 ## How to Run Locally
 
 ### Prerequisites
@@ -151,3 +159,4 @@ http://localhost:4000
 - Add campaign comparison analytics
 - Improve engagement scoring models
 - Extend alerting to detect engagement drops over time using historical metric snapshots
+- Automated refresh pipeline (production-safe scheduled ingestion that refreshes metrics for existing campaigns rather than inserting duplicates)

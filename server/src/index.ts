@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import pool from "./db/db";
 import { ingestCampaignData } from "./services/ingestService";
 import { fetchYouTubeCampaignData } from "./services/youtubeService";
+import cron from "node-cron";
 
 dotenv.config();
 
@@ -236,6 +237,32 @@ app.get("/api/analytics/alerts", async (req, res) => {
     });
   }
 });
+
+// Scheduled campaign refresh concept (disabled by default)
+const ENABLE_SCHEDULED_REFRESH = false;
+
+if (ENABLE_SCHEDULED_REFRESH) {
+  cron.schedule("0 * * * *", async () => {
+    console.log("Running scheduled campaign refresh job...");
+
+    try {
+      const campaigns = await pool.query(`
+        SELECT id, name, query, brand_name
+        FROM campaigns
+      `);
+
+      for (const campaign of campaigns.rows) {
+        console.log(`Would refresh campaign: ${campaign.name}`);
+        // In a production system this would refresh metrics for the
+        // existing campaign instead of creating a new campaign record.
+      }
+
+      console.log("Scheduled refresh completed.");
+    } catch (error) {
+      console.error("Scheduled refresh failed:", error);
+    }
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
