@@ -1,5 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
+import { calculateEngagementRate } from "../utils/analytics";
 
 dotenv.config();
 
@@ -57,14 +58,14 @@ export type NormalizedVideo = {
   };
 };
 
-function calculateEngagementRate(
+/*function calculateEngagementRate(
   views: number,
   likes: number,
   comments: number,
 ): number {
   if (!views || views <= 0) return 0;
   return Number((((likes + comments) / views) * 100).toFixed(4));
-}
+}*/
 
 export async function fetchYouTubeCampaignData(
   query: string,
@@ -74,95 +75,127 @@ export async function fetchYouTubeCampaignData(
     throw new Error("Missing YOUTUBE_API_KEY in environment variables.");
   }
 
-  const searchResponse = await axios.get(`${YOUTUBE_BASE_URL}/search`, {
-    params: {
-      key: YOUTUBE_API_KEY,
-      part: "snippet",
-      q: query,
-      type: "video",
-      maxResults,
-      order: "viewCount",
-    },
-  });
-
-  const searchItems: SearchVideoItem[] = searchResponse.data.items || [];
-  const videoIds = searchItems
-    .map((item) => item.id?.videoId)
-    .filter(Boolean) as string[];
-
-  if (videoIds.length === 0) {
-    return [];
-  }
-
-  const videosResponse = await axios.get(`${YOUTUBE_BASE_URL}/videos`, {
-    params: {
-      key: YOUTUBE_API_KEY,
-      part: "snippet,statistics",
-      id: videoIds.join(","),
-    },
-  });
-
-  const videoItems: VideoApiItem[] = videosResponse.data.items || [];
-
-  const channelIds = Array.from(
-    new Set(
-      videoItems
-        .map((video) => video.snippet?.channelId)
-        .filter(Boolean) as string[],
-    ),
-  );
-
-  let channelItems: ChannelApiItem[] = [];
-
-  if (channelIds.length > 0) {
-    const channelsResponse = await axios.get(`${YOUTUBE_BASE_URL}/channels`, {
+  try {
+    const searchResponse = await axios.get(`${YOUTUBE_BASE_URL}/search`, {
       params: {
         key: YOUTUBE_API_KEY,
-        part: "snippet,statistics",
-        id: channelIds.join(","),
+        part: "snippet",
+        q: query,
+        type: "video",
+        maxResults,
+        order: "viewCount",
       },
     });
 
-    channelItems = channelsResponse.data.items || [];
-  }
+    if (!Array.isArray(searchResponse.data.items)) {
+      throw new Error("Malformed YouTube search response");
+    }
 
-  const channelsById = new Map<string, ChannelApiItem>();
-  for (const channel of channelItems) {
-    channelsById.set(channel.id, channel);
-  }
+    const searchItems: SearchVideoItem[] = searchResponse.data.items || [];
+    const videoIds = searchItems
+      .map((item) => item.id?.videoId)
+      .filter(Boolean) as string[];
 
-  return videoItems.map((video) => {
-    const channelId = video.snippet?.channelId || "";
-    const channel = channelsById.get(channelId);
+    if (videoIds.length === 0) {
+      return [];
+    }
 
-    const views = Number(video.statistics?.viewCount || 0);
-    const likes = Number(video.statistics?.likeCount || 0);
-    const comments = Number(video.statistics?.commentCount || 0);
-
-    return {
-      platform: "youtube",
-      externalContentId: video.id,
-      title: video.snippet?.title || "Untitled Video",
-      publishedAt: video.snippet?.publishedAt || null,
-      url: `https://www.youtube.com/watch?v=${video.id}`,
-      views,
-      likes,
-      comments,
-      engagementRate: calculateEngagementRate(views, likes, comments),
-      creator: {
-        platform: "youtube",
-        externalCreatorId: channelId,
-        name:
-          channel?.snippet?.title ||
-          video.snippet?.channelTitle ||
-          "Unknown Creator",
-        subscriberCount: channel?.statistics?.subscriberCount
-          ? Number(channel.statistics.subscriberCount)
-          : null,
-        videoCount: channel?.statistics?.videoCount
-          ? Number(channel.statistics.videoCount)
-          : null,
+    const videosResponse = await axios.get(`${YOUTUBE_BASE_URL}/videos`, {
+      params: {
+        key: YOUTUBE_API_KEY,
+        part: "snippet,statistics",
+        id: videoIds.join(","),
       },
-    };
-  });
+    });
+
+    if (!Array.isArray(videosResponse.data.items)) {
+      throw new Error("Malformed YouTube videos response");
+    }
+
+    const videoItems: VideoApiItem[] = videosResponse.data.items || [];
+
+    const channelIds = Array.from(
+      new Set(
+        videoItems
+          .map((video) => video.snippet?.channelId)
+          .filter(Boolean) as string[],
+      ),
+    );
+
+    let channelItems: ChannelApiItem[] = [];
+
+    if (channelIds.length > 0) {
+      const channelsResponse = await axios.get(`${YOUTUBE_BASE_URL}/channels`, {
+        params: {
+          key: YOUTUBE_API_KEY,
+          part: "snippet,statistics",
+          id: channelIds.join(","),
+        },
+      });
+
+      channelItems = channelsResponse.data.items || [];
+    }
+
+    const channelsById = new Map<string, ChannelApiItem>();
+    for (const channel of channelItems) {
+      channelsById.set(channel.id, channel);
+    }
+
+    return videoItems.map((video) => {
+      const channelId = video.snippet?.channelId || "";
+      const channel = channelsById.get(channelId);
+
+      const views = Number(video.statistics?.viewCount || 0);
+      const likes = Number(video.statistics?.likeCount || 0);
+      const comments = Number(video.statistics?.commentCount || 0);
+
+      return {
+        platform: "youtube",
+        externalContentId: video.id,
+        title: video.snippet?.title || "Untitled Video",
+        publishedAt: video.snippet?.publishedAt || null,
+        url: `https://www.youtube.com/watch?v=${video.id}`,
+        views,
+        likes,
+        comments,
+        engagementRate: calculateEngagementRate(views, likes, comments),
+        creator: {
+          platform: "youtube",
+          externalCreatorId: channelId,
+          name:
+            channel?.snippet?.title ||
+            video.snippet?.channelTitle ||
+            "Unknown Creator",
+          subscriberCount: channel?.statistics?.subscriberCount
+            ? Number(channel.statistics.subscriberCount)
+            : null,
+          videoCount: channel?.statistics?.videoCount
+            ? Number(channel.statistics.videoCount)
+            : null,
+        },
+      };
+    });
+  } catch (error: any) {
+    if (error.response) {
+      const status = error.response.status;
+
+      if (status === 403) {
+        throw new Error("YouTube API quota exceeded or access forbidden");
+      }
+
+      if (status === 429) {
+        throw new Error("YouTube API rate limit reached");
+      }
+
+      throw new Error(`YouTube API request failed with status ${status}`);
+    }
+
+    if (error.request) {
+      throw new Error("No response received from YouTube API");
+    }
+
+    throw new Error(
+      `Unexpected error while fetching YouTube data: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+  }
 }
