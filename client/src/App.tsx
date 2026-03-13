@@ -155,18 +155,42 @@ function App() {
     >
       <h1>Creator Campaign Analytics</h1>
 
-      <div style={{ marginBottom: 24 }}>
-        <label htmlFor="campaign-select" style={{ marginRight: 12 }}>
-          Campaign:
-        </label>
-        <select
-          id="campaign-select"
-          onChange={(e) => setCampaignId(Number(e.target.value))}
-          value={campaignId ?? ""}
+      <div
+        style={{
+          marginBottom: 24,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+        }}
+      >
+        <label
+          style={{
+            fontWeight: 600,
+            fontSize: 14,
+            color: "#374151",
+          }}
         >
-          {campaigns.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+          Campaign
+        </label>
+
+        <select
+          value={campaignId}
+          onChange={(e) => setCampaignId(Number(e.target.value))}
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            border: "1px solid #d1d5db",
+            fontSize: 14,
+            backgroundColor: "white",
+            cursor: "pointer",
+            minWidth: 240,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          }}
+        >
+          {campaigns.map((campaign) => (
+            <option key={campaign.id} value={campaign.id}>
+              {campaign.name}
             </option>
           ))}
         </select>
